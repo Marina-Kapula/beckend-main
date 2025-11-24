@@ -1,84 +1,113 @@
+const express = require('express')
+const app = express()
+const cors = require('cors')
+const morgan = require('morgan')
+require('dotenv').config()
+const mongoose = require('mongoose')
+const Person = require('./models/person')
 
+mongoose.connect(process.env.MONGODB_URI, { family: 4 })
 
+app.use(cors())
+app.use(express.json())
+app.use(morgan('tiny'))
 
-
-const express = require('express');
-const app = express();
-const cors = require('cors');
-app.use(cors());
-
-const morgan = require('morgan');
-require('dotenv').config();
-
-const mongoose = require('mongoose');
-mongoose.connect(process.env.MONGODB_URI, { family: 4 });
-
-const Person = require('./models/person'); // <-- Тепер модель Person
-
-app.use(morgan('tiny'));
-app.use(express.json());
+// ========== ROUTES ==========
 
 // GET ALL persons
-app.get('/api/persons', (req, res) => {
+app.get('/api/persons', (req, res, next) => {
   Person.find({})
-    .then(persons => {
-      res.json(persons);
-    })
-    .catch(error => {
-      res.status(500).json({ error: 'server error' });
-    });
-});
+    .then(persons => res.json(persons))
+    .catch(error => next(error))
+})
 
-// GET person by id
-app.get('/api/persons/:id', (req, res) => {
+// GET person by ID
+app.get('/api/persons/:id', (req, res, next) => {
   Person.findById(req.params.id)
     .then(person => {
-      if (person) {
-        res.json(person);
-      } else {
-        res.status(404).end();
-      }
+      if (person) res.json(person)
+      else res.status(404).end()
     })
-    .catch(error => {
-      res.status(400).json({ error: 'malformatted id' });
-    });
-});
+    .catch(error => next(error))
+})
 
-// DELETE person by id
-app.delete('/api/persons/:id', (req, res) => {
+// DELETE person
+app.delete('/api/persons/:id', (req, res, next) => {
   Person.findByIdAndDelete(req.params.id)
-    .then(() => {
-      res.status(204).end();
-    })
-    .catch(error => {
-      res.status(400).json({ error: 'malformatted id' });
-    });
-});
+    .then(() => res.status(204).end())
+    .catch(error => next(error))
+})
 
-// POST (add new person)
-app.post('/api/persons', (req, res) => {
-  const body = req.body;
-  if (!body.name || !body.number) {
-    return res.status(400).json({ error: 'name or number missing' });
+// POST new person
+app.post('/api/persons', (req, res, next) => {
+  const { name, number } = req.body
+
+  if (!name || !number) {
+    return res.status(400).json({ error: 'name or number missing' })
   }
-  const person = new Person({
-    name: body.name,
-    number: body.number
-  });
+
+  const person = new Person({ name, number })
+
   person.save()
-    .then(savedPerson => {
-      res.status(201).json(savedPerson);
+    .then(savedPerson => res.status(201).json(savedPerson))
+    .catch(error => next(error))
+})
+
+// PUT update person
+app.put('/api/persons/:id', (req, res, next) => {
+  const { name, number } = req.body
+
+  Person.findByIdAndUpdate(
+    req.params.id,
+    { name, number },
+    { new: true, runValidators: true, context: 'query' }
+  )
+    .then(updatedPerson => {
+      if (updatedPerson) res.json(updatedPerson)
+      else res.status(404).end()
     })
-    .catch(error => {
-      res.status(500).json({ error: 'server error' });
-    });
-});
+    .catch(error => next(error))
+})
 
+// info route
+app.get('/info', (req, res, next) => {
+  Person.countDocuments({})
+    .then(count => {
+      res.send(`
+        <p>Phonebook has info for ${count} people</p>
+        <p>${new Date()}</p>
+      `)
+    })
+    .catch(error => next(error))
+})
+
+// root
 app.get('/', (req, res) => {
-  res.send('Phonebook API working!');
-});
+  res.send('Phonebook API working!')
+})
 
-const PORT = 3001;
+// ========== MIDDLEWARES ==========
+
+// unknown endpoint
+app.use((req, res) => {
+  res.status(404).send({ error: 'unknown endpoint' })
+})
+
+// error handler
+app.use((error, req, res, next) => {
+  console.error(error.message)
+
+  if (error.name === 'CastError') {
+    return res.status(400).json({ error: 'malformatted id' })
+  } else if (error.name === 'ValidationError') {
+    return res.status(400).json({ error: error.message })
+  }
+
+  next(error)
+})
+
+// start server
+const PORT = 3001
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+  console.log(`Server running on port ${PORT}`)
+})
