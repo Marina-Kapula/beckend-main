@@ -105,7 +105,7 @@ app.get('/info', (req, res, next) => {
 
 
 // ===== UNKNOWN ENDPOINT =====
-app.use((req, res) => {
+app.use('/api', (req, res) => {
   res.status(404).send({ error: 'unknown endpoint' })
 })
 
