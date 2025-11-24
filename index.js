@@ -13,8 +13,9 @@ mongoose.set('strictQuery', false)
 mongoose.connect(process.env.MONGODB_URI, { family: 4 })
 
 // ===== MIDDLEWARES =====
-app.use(cors())
-app.use(express.json())
+app.use(cors({
+  origin: 'https://test-main-i3r1.onrender.com'
+}));app.use(express.json())
 app.use(morgan('tiny'))
 
 // раздача собранного фронтенда (папка dist)
