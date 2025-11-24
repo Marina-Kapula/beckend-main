@@ -5,6 +5,8 @@ const morgan = require('morgan')
 require('dotenv').config()
 const mongoose = require('mongoose')
 const Person = require('./models/person')
+const path = require('path')
+app.use(express.static('dist'))
 
 // подключение к MongoDB
 mongoose.set('strictQuery', false)
@@ -14,6 +16,9 @@ mongoose.connect(process.env.MONGODB_URI, { family: 4 })
 app.use(cors())
 app.use(express.json())
 app.use(morgan('tiny'))
+
+// раздача собранного фронтенда (папка dist)
+app.use(express.static('dist'))
 
 // ===== ROUTES =====
 
@@ -56,7 +61,7 @@ app.post('/api/persons', (req, res, next) => {
 
   person.save()
     .then(savedPerson => res.status(201).json(savedPerson))
-    .catch(error => next(error))  // сюда прилетит ValidationError от схемы
+    .catch(error => next(error))
 })
 
 // PUT update person
@@ -68,7 +73,7 @@ app.put('/api/persons/:id', (req, res, next) => {
     { name, number },
     {
       new: true,
-      runValidators: true,  // включает ту же валидацию, что и при save()
+      runValidators: true,
       context: 'query',
     }
   )
@@ -94,10 +99,9 @@ app.get('/info', (req, res, next) => {
     .catch(error => next(error))
 })
 
-// root
-app.get('/', (req, res) => {
-  res.send('Phonebook API working!')
-})
+// ===== FRONTEND CATCH-ALL =====
+// все неизвестные GET-ы отдаем index.html фронта
+
 
 // ===== UNKNOWN ENDPOINT =====
 app.use((req, res) => {
@@ -111,7 +115,6 @@ app.use((error, req, res, next) => {
   if (error.name === 'CastError') {
     return res.status(400).json({ error: 'malformatted id' })
   } else if (error.name === 'ValidationError') {
-    // сюда попадает ошибка из Mongoose (имя минимум 3, номер правильного формата)
     return res.status(400).json({ error: error.message })
   }
 
