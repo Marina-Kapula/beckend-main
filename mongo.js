@@ -1,35 +1,32 @@
-const mongoose = require('mongoose');
+const mongoose = require('mongoose')
 
 if (process.argv.length < 3) {
-  console.log('give password as argument');
-  process.exit(1);
+  console.log('give password as argument')
+  process.exit(1)
 }
 
-const password = process.argv[2];
-const url = `mongodb+srv://maks:${password}@cluster0.ca1kyqr.mongodb.net/phonebook?retryWrites=true&w=majority`;
+const password = process.argv[2]
 
-mongoose.set('strictQuery', false);
-mongoose.connect(url, { family: 4 });
+const url = `mongodb+srv://marynakapula_fulstack:${password}@cluster0.sjes0to.mongodb.net/phonebook?retryWrites=true&w=majority&appName=Cluster0`
 
+mongoose.set('strictQuery', false)
+mongoose.connect(url, { family: 4 })
+
+// далі тимчасова схема, тільки для тесту:
 const personSchema = new mongoose.Schema({
   name: String,
   number: String,
-});
+})
 
-const Person = mongoose.model('Person', personSchema);
+const Person = mongoose.model('Person', personSchema)
 
-// Додає одного юзера (заміни на свої дані або параметри!)
+// приклад: додати один запис
 const person = new Person({
-  name: 'Arto Hellas',
-  number: '040-123456',
-});
+  name: 'Anna',
+  number: '040-1234556',
+})
 
-person.save()
-  .then(result => {
-    console.log('person saved!');
-    mongoose.connection.close();
-  })
-  .catch(error => {
-    console.log('Error saving:', error);
-    mongoose.connection.close();
-  });
+person.save().then(() => {
+  console.log('person saved!')
+  mongoose.connection.close()
+})
